@@ -1,44 +1,43 @@
-// MainProgram.cpp
 #include <iostream>
 #include <windows.h>
+#include <iomanip>
+#include "shape.h"
 
-typedef void (__stdcall *perform)();
+typedef Shape* (*CreateShape)();
 
-int main() {
-    HMODULE pluginHandleA = LoadLibraryA("plugina.dll");
-    HMODULE pluginHandleB = LoadLibraryA("pluginb.dll");
+int main(){
 
-    if (!pluginHandleA || !pluginHandleB) {
-        std::cerr << "Error loading plug-ins." << std::endl;
+    HMODULE plugin_circle = LoadLibrary("circle.dll");
+    HMODULE plugin_rectangle = LoadLibrary("rectangle.dll");
+
+    if (!plugin_circle) {
+        std::cerr << "Error loading dll." << std::endl;
         return 1;
     }
 
-    // Get function pointers for the performAction() method
-    auto performActionA = reinterpret_cast<void (*)()>(GetProcAddress(pluginHandleA, "performAction"));
-    auto performActionB = reinterpret_cast<void (*)()>(GetProcAddress(pluginHandleB, "performAction"));
-    perform myFunction = (perform)GetProcAddress(pluginHandleA, "performAction");
-
-    /// FARPROC myFunction = GetProcAddress(hModule, "myFunction");
-    ///if (myFunction) {
-        ///((void (*)())myFunction)();
-        //std::cout<<"A"<< std::endl;
-    //}
-
-    if (!myFunction) {
-        std::cout << "Could not locate the function" << std::endl;
-        return EXIT_FAILURE;
+    CreateShape create_circle = reinterpret_cast<CreateShape>(GetProcAddress(plugin_circle, "CreateCircle"));
+    if (!create_circle) {
+        std::cerr << "Error loading circle." << std::endl;
+        return 1;
     }
 
-    myFunction();
+    CreateShape create_rectangle = reinterpret_cast<CreateShape>(GetProcAddress(plugin_rectangle, "CreateRectangle"));
+    if (!create_rectangle) {
+        std::cerr << "Error loading rectangle." << std::endl;
+        return 1;
+    }
 
+    Shape* circle = create_circle();    
+    std::cout<< "Circle area: " << std::setprecision(5) << circle->Calculate() << std::endl;
 
-    // Call the plug-in methods
-    performActionA();
-    performActionB();
+    Shape* rectangle = create_rectangle();    
+    std::cout<< "Rectangle area: " << rectangle->Calculate() << std::endl;
 
-    // Clean up
-    FreeLibrary(pluginHandleA);
-    FreeLibrary(pluginHandleB);
+    delete circle;
+    delete rectangle;
 
+    FreeLibrary(plugin_circle);
+    FreeLibrary(plugin_rectangle);
+    
     return 0;
 }

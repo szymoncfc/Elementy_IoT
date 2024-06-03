@@ -1,2 +1,6 @@
 .venv/
 .vscode/
+*.exe
+*.txt
+zad2/uploads/
+*.o
